@@ -3,7 +3,7 @@ Pops up an alert while an upgrade fodder limited-time event is going on for the 
 
 Currently very barebones, will be made slightly fancier later.
 
-Only tested on Windows 7 but should work on all supported desktop platforms Qt 5 supports.
+Only tested on Windows 7 but should work on all desktop platforms that Qt 5 supports.
 
 ### Dependencies
 Python 3.5+
