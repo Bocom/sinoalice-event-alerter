@@ -7,5 +7,7 @@ Only tested on Windows 7 but should work anywhere.
 
 ### Dependencies
 Python 3.5+
+
 PyQt5
+
 pytz
