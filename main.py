@@ -1,6 +1,6 @@
 import sys
 import pytz
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, tzinfo
 from PyQt5.QtCore import Qt, QEvent, QTimer, QPoint
 from PyQt5.QtGui import QIcon, QFont, QFontDatabase, QGuiApplication
 from PyQt5.QtWidgets import QApplication, qApp, QWidget, QSystemTrayIcon, QLabel, QMenu, QHBoxLayout
@@ -22,8 +22,8 @@ class EventWindow(object):
             self.pre = self.start - timedelta(minutes=pre_window_length)
 
     def check(self, ct):
-        s = self.start.replace(year=ct.year, month=ct.month, day=ct.day, tzinfo=timezone)
-        e = self.end.replace(year=ct.year, month=ct.month, day=ct.day, tzinfo=timezone)
+        s = self.start.replace(year=ct.year, month=ct.month, day=ct.day)
+        e = self.end.replace(year=ct.year, month=ct.month, day=ct.day)
         
         return ct.time() >= s.time() and ct.time() < e.time()
 
@@ -31,8 +31,8 @@ class EventWindow(object):
         if self.pre is None:
             return False
 
-        p = self.pre.replace(year=ct.year, month=ct.month, day=ct.day, tzinfo=timezone)
-        s = self.start.replace(year=ct.year, month=ct.month, day=ct.day, tzinfo=timezone)
+        p = self.pre.replace(year=ct.year, month=ct.month, day=ct.day)
+        s = self.start.replace(year=ct.year, month=ct.month, day=ct.day)
 
         return ct.time() >= p.time() and ct.time() < s.time()
 
@@ -196,7 +196,7 @@ class Window(QWidget):
         self.show()
 
     def update(self):
-        ct = datetime.now(timezone)
+        ct = datetime.now(timezone).replace(tzinfo=None)
 
         in_pre_window = False
         in_window = False
@@ -249,6 +249,11 @@ class TrayIcon(QSystemTrayIcon):
 
         menu.addSeparator()
 
+        next_window_action = menu.addAction("Next Window")
+        next_window_action.triggered.connect(self.next_window)
+
+        menu.addSeparator()
+
         exit_action = menu.addAction("Exit")
         exit_action.triggered.connect(parent.close)
 
@@ -256,9 +261,33 @@ class TrayIcon(QSystemTrayIcon):
 
         self.activated.connect(self.clicked)
 
+    def next_window(self):
+        ct = datetime.now(timezone).replace(tzinfo=None)
+
+        diff = None
+        for window in windows:
+            wt = window.start.replace(year=ct.year, month=ct.month, day=ct.day)
+
+            if wt.time() < ct.time():
+                continue
+
+            diff = wt - ct
+            break
+
+        if diff is None:
+            wt = windows[0].start.replace(year=ct.year, month=ct.month, day=ct.day + 1)
+            diff = wt - ct
+
+        hours, remainder = divmod(diff.seconds, 3600)
+        minutes, seconds = divmod(remainder, 60)
+
+        self.showMessage("Next Window", "The next window opens in {:02d}:{:02d}:{:02d}".format(hours, minutes, seconds))
+
     def clicked(self, reason):
-        if reason == QSystemTrayIcon.Trigger:
+        if reason == QSystemTrayIcon.DoubleClick or reason == QSystemTrayIcon.MiddleClick:
             self.parent().unhide()
+        elif reason == QSystemTrayIcon.Trigger:
+            self.next_window()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
